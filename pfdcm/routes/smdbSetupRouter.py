@@ -11,39 +11,40 @@ str_description = """
 """
 
 
-from    fastapi             import  APIRouter, Query
-from    fastapi.encoders    import  jsonable_encoder
-from    typing              import  List, Dict
+from fastapi import APIRouter, Query
+from fastapi.encoders import jsonable_encoder
+from typing import List, Dict
 
-from    models              import  smdbSetupModel
-from    controllers         import  smdbSetupController
+from pfdcm.models import smdbSetupModel
+from pfdcm.controllers import smdbSetupController
 
-from    datetime            import  datetime
-import  config
+from datetime import datetime
+from pfdcm import config
 
 
 # import  logging
-from    pflogf              import  FnndscLogFormatter
+from pflogf import FnndscLogFormatter
 
 # pfstorage local dependencies
-import  pfmisc
-from    pfmisc.C_snode      import  *
-import  pfstate
-from    pfstate             import  S
+import pfmisc
+from pfmisc.C_snode import *
+import pfstate
+from pfstate import S
 
-import  pudb
+import pudb
 
-router          = APIRouter()
-router.tags     = ['SMDB setup services']
+router = APIRouter()
+router.tags = ['SMDB setup services']
+
 
 @router.post(
     '/SMDB/swift/',
-    response_model  = dict,
-    summary         = '''
+    response_model=dict,
+    summary='''
     POST an update to a swift resource in the pypx SMDB object''',
 )
 async def SMDBobj_swiftUpdate(
-        swiftData   : smdbSetupModel.SMDBswiftConfig
+        swiftData: smdbSetupModel.SMDBswiftConfig
 ):
     """
     Update a swift resource within the SMDB module.
@@ -61,12 +62,12 @@ async def SMDBobj_swiftUpdate(
 
 @router.post(
     '/SMDB/FS/',
-    response_model  = smdbSetupModel.SMDBFsReturnModel,
-    summary         = '''
+    response_model=smdbSetupModel.SMDBFsReturnModel,
+    summary='''
     POST an update to a FS storage resource in the pypx SMDB object''',
 )
 async def SMDBobj_fsUpdate(
-        fsData   : smdbSetupModel.SMDBFsConfig
+        fsData: smdbSetupModel.SMDBFsConfig
 ):
     """
     Update a FS storage resource within the SMDB module.
@@ -81,14 +82,15 @@ async def SMDBobj_fsUpdate(
     """
     return smdbSetupController.fsData_update(fsData)
 
+
 @router.post(
     '/SMDB/CUBE/',
-    response_model  = smdbSetupModel.SMDBcubeReturnModel,
-    summary         = '''
+    response_model=smdbSetupModel.SMDBcubeReturnModel,
+    summary='''
     POST an update to a CUBE resource in the pypx SMDB object''',
 )
 async def SMDBobj_cubeUpdate(
-        cubeData   : smdbSetupModel.SMDBcubeConfig
+        cubeData: smdbSetupModel.SMDBcubeConfig
 ):
     """
     Update a CUBE resource within the SMDB module.
@@ -103,10 +105,11 @@ async def SMDBobj_cubeUpdate(
     """
     return smdbSetupController.cubeData_update(cubeData)
 
+
 @router.get(
     "/SMDB/storage/list/",
-    response_model  = List,
-    summary         = "GET the list of configured SMDB storage services"
+    response_model=List,
+    summary="GET the list of configured SMDB storage services"
 )
 async def storageList_get():
     """
@@ -114,10 +117,11 @@ async def storageList_get():
     """
     return smdbSetupController.swiftObjects_getList()
 
+
 @router.get(
     "/SMDB/CUBE/list/",
-    response_model  = List,
-    summary         = "GET the list of configured SMDB CUBE services"
+    response_model=List,
+    summary="GET the list of configured SMDB CUBE services"
 )
 async def cubeList_get():
     """
@@ -125,29 +129,30 @@ async def cubeList_get():
     """
     return smdbSetupController.cubeObjects_getList()
 
+
 @router.get(
     "/SMDB/storage/{storageResource}/",
-    response_model  = dict,
-    summary         = "GET detail on a specific storage resource"
+    response_model=dict,
+    summary="GET detail on a specific storage resource"
 )
 async def storageResource_get(
-    storageResource : str
+    storageResource: str
 ):
     """
     GET detail info on a given SMDB storage resource
     """
     return smdbSetupController.swiftObject_get(storageResource)
 
+
 @router.get(
     "/SMDB/CUBE/{cubeResource}/",
-    response_model  = smdbSetupModel.SMDBcubeReturnModel,
-    summary         = "GET detail on a specific CUBE resource"
+    response_model=smdbSetupModel.SMDBcubeReturnModel,
+    summary="GET detail on a specific CUBE resource"
 )
 async def cubeResource_get(
-    cubeResource : str
+    cubeResource: str
 ):
     """
     GET detail info on a given SMDB CUBE resource
     """
     return smdbSetupController.cubeObject_get(cubeResource)
-

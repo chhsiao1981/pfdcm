@@ -5,16 +5,16 @@ str_description = """
 """
 
 
-from    fastapi             import APIRouter, Query
-from    fastapi.encoders    import jsonable_encoder
-from    pydantic            import BaseModel, Field
-from    typing              import Optional, List, Dict
+from fastapi import APIRouter, Query
+from fastapi.encoders import jsonable_encoder
+from pydantic import BaseModel, Field
+from typing import Optional, List, Dict
+
 
 def noop():
     """
     A dummy function that does nothing.
     """
     return {
-        'status':   True
+        'status': True
     }
-

@@ -9,76 +9,85 @@ str_description = """
 
 """
 
-from    pydantic            import BaseModel, Field
-from    typing              import Optional, List, Dict
-from    datetime            import datetime
+from pydantic import BaseModel, Field
+from typing import Optional, List, Dict
+from datetime import datetime
 
-from    db                  import pfdb
-from    pypx                import smdb
-import  pudb
+from pfdcm.db import pfdb
+from pypx import smdb
+import pudb
 
 # Some "helper" classes
+
+
 class ValueStr(BaseModel):
-    value:              str         = ""
+    value: str = ""
+
 
 class SMDBswiftCore(BaseModel):
     """The SMDB swift service model"""
-    ip              : str
-    port            : str
-    login           : str
+    ip: str
+    port: str
+    login: str
+
 
 class SMDBFsCore(BaseModel):
     """The SMDB file system service model"""
-    storepath       : str
+    storepath: str
+
 
 class SMDBFsConfig(BaseModel):
     """The SMDB FS key config model"""
-    fsKeyName       : ValueStr
-    fsInfo          : SMDBFsCore
+    fsKeyName: ValueStr
+    fsInfo: SMDBFsCore
+
 
 class SMDBswiftConfig(BaseModel):
     """The SMDB swift key config model"""
-    swiftKeyName    : ValueStr
-    swiftInfo       : SMDBswiftCore
+    swiftKeyName: ValueStr
+    swiftInfo: SMDBswiftCore
 
 
 class SMDBcubeCore(BaseModel):
     """The SMDB cube service model"""
-    url             : str
-    username        : str
-    password        : str
+    url: str
+    username: str
+    password: str
+
 
 class SMDBcubeConfig(BaseModel):
     """The SMDB cube key config model"""
-    cubeKeyName     : ValueStr
-    cubeInfo        : SMDBcubeCore
+    cubeKeyName: ValueStr
+    cubeInfo: SMDBcubeCore
 
 
 class time(BaseModel):
     """A simple model that has a time string field"""
-    time            : str
+    time: str
+
 
 class SMDBswiftReturnModel(BaseModel):
     """
     A full model that is returned from a call to the DB
     """
-    status            : bool  = False
-    storageKeyName    : str
-    storageInfo       : SMDBswiftCore
+    status: bool = False
+    storageKeyName: str
+    storageInfo: SMDBswiftCore
+
 
 class SMDBcubeReturnModel(BaseModel):
     """
     A full model that is returned from a call to the DB
     """
-    status          : bool  = False
-    cubeKeyName     : str
-    cubeInfo        : SMDBcubeCore
+    status: bool = False
+    cubeKeyName: str
+    cubeInfo: SMDBcubeCore
+
 
 class SMDBFsReturnModel(BaseModel):
     """
     A full model that is returned from a call to the DB
     """
-    status        : bool  = False
-    fsKeyName     : str
-    fsInfo        : SMDBFsCore
-
+    status: bool = False
+    fsKeyName: str
+    fsInfo: SMDBFsCore

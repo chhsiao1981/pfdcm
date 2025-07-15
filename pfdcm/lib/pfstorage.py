@@ -1,49 +1,50 @@
 #!/usr/bin/env python3.5
 
-import  abc
+import abc
 
-import  sys
-from    io              import  BytesIO as IO
-from    http.server     import  BaseHTTPRequestHandler, HTTPServer
-from    socketserver    import  ThreadingMixIn
-from    webob           import  Response
-from    pathlib         import  Path
-import  cgi
-import  json
-import  urllib
-import  ast
-import  shutil
-import  datetime
-import  time
-import  inspect
-import  pprint
+import sys
+from io import BytesIO as IO
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
+from webob import Response
+from pathlib import Path
+import cgi
+import json
+import urllib
+import ast
+import shutil
+import datetime
+import time
+import inspect
+import pprint
 
-import  threading
-import  platform
-import  socket
-import  psutil
-import  os
-import  multiprocessing
-import  pfurl
-import  configparser
-import  swiftclient
+import threading
+import platform
+import socket
+import psutil
+import os
+import multiprocessing
+import pfurl
+import configparser
+import swiftclient
 
-import  pfmisc
+import pfmisc
 
 # debugging utilities
-import  pudb
+import pudb
 
 # pfstorage local dependencies
-from    pfmisc._colors      import  Colors
-from    pfmisc.debug        import  debug
-from    pfmisc.C_snode      import  *
-from    pfstate             import  S
+from pfmisc._colors import Colors
+from pfmisc.debug import debug
+from pfmisc.C_snode import *
+from pfstate import S
 
 # Global vars for sharing data between StoreHandler and HTTPServer
-Gd_args             = {}
-Gstr_name           = ""
-Gstr_description    = ""
-Gstr_version        = ""
+Gd_args = {}
+Gstr_name = ""
+Gstr_description = ""
+Gstr_version = ""
+
 
 def static_vars(**kwargs):
     def decorate(func):
@@ -51,6 +52,7 @@ def static_vars(**kwargs):
             setattr(func, k, kwargs[k])
         return func
     return decorate
+
 
 class FL2dict():
     """
@@ -71,9 +73,9 @@ class FL2dict():
         Constructor
         """
         if type(o) is dict:
-            self.d_in           = o
+            self.d_in = o
         else:
-            self.d_in           = dict(urllib.parse.parse_qsl(o))
+            self.d_in = dict(urllib.parse.parse_qsl(o))
 
     # code to conert dict into nested dict
     def nest_dict(self, dict1):
@@ -98,18 +100,18 @@ class FL2dict():
         """
         Process (ajax transmitted) flattened dictionary
         """
-        b_status    = False
+        b_status = False
         r = {}
-        for k,v in d.items():
+        for k, v in d.items():
             if ']' in k:
-                k           = k.replace(']', '')
+                k = k.replace(']', '')
             if '[' in k:
-                k           = k.replace('[', '_')
-                b_status    = True
-            r[k]    = v
+                k = k.replace('[', '_')
+                b_status = True
+            r[k] = v
         return {
-            'status':   b_status,
-            'dict':     r if b_status else d
+            'status': b_status,
+            'dict': r if b_status else d
         }
 
     def __call__(self, *args, **kwargs):
@@ -122,13 +124,14 @@ class FL2dict():
         """
         The main entry point
         """
-        d_ret               = self.d_in
-        d_replaceStatus     = self.dictionary_replaceBrackets(self.d_in)
-        b_status            = d_replaceStatus['status']
-        d_replace           = d_replaceStatus['dict']
+        d_ret = self.d_in
+        d_replaceStatus = self.dictionary_replaceBrackets(self.d_in)
+        b_status = d_replaceStatus['status']
+        d_replace = d_replaceStatus['dict']
         if b_status:
-            d_ret   = self.nest_dict(d_replace)
+            d_ret = self.nest_dict(d_replace)
         return d_ret
+
 
 class D(S):
     """
@@ -140,44 +143,43 @@ class D(S):
         Constructor
         """
 
-        for k,v in kwargs.items():
-            if k == 'args':     d_args          = v
+        for k, v in kwargs.items():
+            if k == 'args':
+                d_args = v
 
         S.__init__(self, *args, **kwargs)
         if not S.b_init:
             proto = 'https' if d_args['portSwift'] == 443 else 'http'
-            d_specific  = \
+            d_specific = \
                 {
                     "swift": {
-                        "auth_url":                 "%s://%s:%s/auth/v1.0" % \
-                                                    (proto, d_args['ipSwift'], d_args['portSwift']),
-                        "username":                 "chris:chris1234",
-                        "key":                      "testing",
-                        "container_name":           "users",
-                        "auto_create_container":    True,
-                        "file_storage":             "swift.storage.SwiftStorage"
+                        "auth_url": "%s://%s:%s/auth/v1.0" %
+                        (proto, d_args['ipSwift'], d_args['portSwift']),
+                        "username": "chris:chris1234",
+                        "key": "testing",
+                        "container_name": "users",
+                        "auto_create_container": True,
+                        "file_storage": "swift.storage.SwiftStorage"
                     }
                 }
             S.d_state.update(d_specific)
             S.T.initFromDict(S.d_state)
-            S.b_init    = True
+            S.b_init = True
             if len(S.T.cat('/this/debugToDir')):
                 if not os.path.exists(S.T.cat('/this/debugToDir')):
                     os.makedirs(S.T.cat('/this/debugToDir'))
 
         self.dp.qprint(
             Colors.YELLOW + "\n\t\tInternal data tree:",
-            level   = 1,
-            syslog  = False)
+            level=1,
+            syslog=False)
         self.dp.qprint(
             C_snode.str_blockIndent(str(S.T), 3, 8),
-            level   = 1,
-            syslog  = False)
+            level=1,
+            syslog=False)
 
 
-
-
-class PfStorage(metaclass = abc.ABCMeta):
+class PfStorage(metaclass=abc.ABCMeta):
 
     def __init__(self, *args, **kwargs):
         """
@@ -187,25 +189,29 @@ class PfStorage(metaclass = abc.ABCMeta):
         organize the space of <self> variables a bit logically.
         """
 
-        b_test                  = False
-        d_args                  = {}
-        str_desc                = ''
-        str_version             = ''
+        b_test = False
+        d_args = {}
+        str_desc = ''
+        str_version = ''
 
         # pudb.set_trace()
 
-        for k,v in kwargs.items():
-            if k == 'test':         b_test          = True
-            if k == 'args':         d_args          = v
-            if k == 'desc':         str_desc        = v
-            if k == 'version':      str_version     = v
+        for k, v in kwargs.items():
+            if k == 'test':
+                b_test = True
+            if k == 'args':
+                d_args = v
+            if k == 'desc':
+                str_desc = v
+            if k == 'version':
+                str_version = v
 
-        self.s              = D(*args, **kwargs)
-        self.dp             = pfmisc.debug(
-                                        verbosity   = S.T.cat('/this/verbosity'),
-                                        within      = S.T.cat('/this/name')
-                                        )
-        self.pp             = pprint.PrettyPrinter(indent=4)
+        self.s = D(*args, **kwargs)
+        self.dp = pfmisc.debug(
+            verbosity=S.T.cat('/this/verbosity'),
+            within=S.T.cat('/this/name')
+        )
+        self.pp = pprint.PrettyPrinter(indent=4)
 
     def filesFind(self, *args, **kwargs):
         """
@@ -216,16 +222,17 @@ class PfStorage(metaclass = abc.ABCMeta):
             root = <someStartPath>
 
         """
-        d_ret      = {
-            'status':   False,
+        d_ret = {
+            'status': False,
             'l_fileFS': [],
-            'l_dirFS':  [],
+            'l_dirFS': [],
             'numFiles': 0,
-            'numDirs':  0
+            'numDirs': 0
         }
-        str_rootPath    = ''
-        for k,v in kwargs.items():
-            if k == 'root': str_rootPath    = v
+        str_rootPath = ''
+        for k, v in kwargs.items():
+            if k == 'root':
+                str_rootPath = v
         if len(str_rootPath):
             # Create a list of all files down the <str_rootPath>
             for root, dirs, files in os.walk(str_rootPath):
@@ -235,8 +242,8 @@ class PfStorage(metaclass = abc.ABCMeta):
                 for dirname in dirs:
                     d_ret['l_dirFS'].append(os.path.join(root, dirname))
 
-        d_ret['numFiles']   = len(d_ret['l_fileFS'])
-        d_ret['numDirs']    = len(d_ret['l_dirFS'])
+        d_ret['numFiles'] = len(d_ret['l_fileFS'])
+        d_ret['numDirs'] = len(d_ret['l_dirFS'])
         return d_ret
 
     def run(self, str_msg):
@@ -253,31 +260,31 @@ class PfStorage(metaclass = abc.ABCMeta):
         # might return a different dictionary. It is NOT safe to
         # assume that all action processing methods will honor this
         # tempate.
-        d_actionResult      = {
-            'status':       False,
-            'msg':          ''
+        d_actionResult = {
+            'status': False,
+            'msg': ''
         }
 
-        d_msg   = json.loads(str_msg)
+        d_msg = json.loads(str_msg)
 
         if 'action' in d_msg:
-            self.dp.qprint("verb: %s detected." % d_msg['action'], comms = 'status')
-            str_method      = '%s_process' % d_msg['action']
-            self.dp.qprint("method to call: %s(request = d_msg) " % str_method, comms = 'status')
+            self.dp.qprint("verb: %s detected." % d_msg['action'], comms='status')
+            str_method = '%s_process' % d_msg['action']
+            self.dp.qprint("method to call: %s(request = d_msg) " % str_method, comms='status')
             try:
                 # pudb.set_trace()
-                method              = getattr(self, str_method)
-                d_actionResult      = method(request = d_msg)
+                method = getattr(self, str_method)
+                d_actionResult = method(request=d_msg)
             except:
-                str_msg     = "Class '{}' does not implement method '{}'".format(
-                                        self.__class__.__name__,
-                                        str_method)
-                d_actionResult      = {
-                    'status':   False,
-                    'msg':      str_msg
+                str_msg = "Class '{}' does not implement method '{}'".format(
+                    self.__class__.__name__,
+                    str_method)
+                d_actionResult = {
+                    'status': False,
+                    'msg': str_msg
                 }
-                self.dp.qprint(str_msg, comms = 'error')
-            self.dp.qprint(json.dumps(d_actionResult, indent = 4), comms = 'tx')
+                self.dp.qprint(str_msg, comms='error')
+            self.dp.qprint(json.dumps(d_actionResult, indent=4), comms='tx')
 
         return d_actionResult
 
@@ -287,7 +294,7 @@ class PfStorage(metaclass = abc.ABCMeta):
         Returns path of storage location in the filesystem space in which a
         specific service has been launched.
         """
-        return os.path.join('%s/key-%s' %(storeBase, key_num), '')
+        return os.path.join('%s/key-%s' % (storeBase, key_num), '')
 
     @abc.abstractmethod
     def connect(self, *args, **kwargs):
@@ -338,6 +345,7 @@ class PfStorage(metaclass = abc.ABCMeta):
         Pull a list of (file) objects from storage.
         """
 
+
 class swiftStorage(PfStorage):
 
     def __init__(self, *args, **kwargs):
@@ -347,7 +355,7 @@ class swiftStorage(PfStorage):
 
         PfStorage.__init__(self, *args, **kwargs)
 
-    @static_vars(str_prependBucketPath = "")
+    @static_vars(str_prependBucketPath="")
     def connect(self, *args, **kwargs):
         """
         Connect to swift storage and return the connection object,
@@ -360,28 +368,29 @@ class swiftStorage(PfStorage):
         library for both pfcon and CUBE.
         """
 
-        b_status                = True
+        b_status = True
 
-        for k,v in kwargs.items():
-            if k == 'prependBucketPath':    self.connect.str_prependBucketPath = v
+        for k, v in kwargs.items():
+            if k == 'prependBucketPath':
+                self.connect.str_prependBucketPath = v
 
-        d_ret       = {
-            'status':               b_status,
-            'conn':                 None,
-            'prependBucketPath':    self.connect.str_prependBucketPath,
-            'user':                 S.T.cat('/swift/username'),
-            'key':                  S.T.cat('/swift/key'),
-            'authurl':              S.T.cat('/swift/auth_url'),
-            'container_name':       S.T.cat('/swift/container_name')
+        d_ret = {
+            'status': b_status,
+            'conn': None,
+            'prependBucketPath': self.connect.str_prependBucketPath,
+            'user': S.T.cat('/swift/username'),
+            'key': S.T.cat('/swift/key'),
+            'authurl': S.T.cat('/swift/auth_url'),
+            'container_name': S.T.cat('/swift/container_name')
         }
 
         # initiate a swift service connection, based on internal
         # settings already available in the django variable space.
         try:
             d_ret['conn'] = swiftclient.Connection(
-                user    = d_ret['user'],
-                key     = d_ret['key'],
-                authurl = d_ret['authurl']
+                user=d_ret['user'],
+                key=d_ret['key'],
+                authurl=d_ret['authurl']
             )
         except:
             d_ret['status'] = False
@@ -399,24 +408,25 @@ class swiftStorage(PfStorage):
             'hash', 'last_modified', 'bytes', 'name', 'content-type'
 
         """
-        d_ret       = {'status': False}
-        d_ls        = {}
-        d_lsFilter  = {}
-        d_msg       = {}
-        d_meta      = {}
-        l_retSpec   = ['name']
+        d_ret = {'status': False}
+        d_ls = {}
+        d_lsFilter = {}
+        d_msg = {}
+        d_meta = {}
+        l_retSpec = ['name']
 
         for k, v in kwargs.items():
-            if k == 'request':      d_msg       = v
+            if k == 'request':
+                d_msg = v
 
         if 'meta' in d_msg:
-            d_meta  = d_msg['meta']
+            d_meta = d_msg['meta']
             if 'retSpec' in d_meta:
-                l_retSpec   = d_meta['retSpec']
+                l_retSpec = d_meta['retSpec']
             d_ls = self.ls(**d_meta)
             d_ret['status'] = d_ls['status']
             if len(l_retSpec):
-                d_lsFilter  = [ {x: y[x] for x in l_retSpec} for y in d_ls['objectDict'] ]
+                d_lsFilter = [{x: y[x] for x in l_retSpec} for y in d_ls['objectDict']]
                 d_ret['ls'] = d_lsFilter
             else:
                 d_ret['ls'] = d_ls
@@ -437,64 +447,70 @@ class swiftStorage(PfStorage):
 
         """
 
-        l_ls                    = []    # The listing of names to return
-        ld_obj                  = {}    # List of dictionary objects in swift
-        str_path                = '/'
-        str_fullPath            = ''
-        str_subString           = ''
-        b_prependBucketPath     = False
-        b_status                = False
+        l_ls = []    # The listing of names to return
+        ld_obj = {}    # List of dictionary objects in swift
+        str_path = '/'
+        str_fullPath = ''
+        str_subString = ''
+        b_prependBucketPath = False
+        b_status = False
 
-        for k,v in kwargs.items():
-            if k == 'path':                 str_path            = v
-            if k == 'prependBucketPath':    b_prependBucketPath = v
-            if k == 'substr':               str_subString       = v
+        for k, v in kwargs.items():
+            if k == 'path':
+                str_path = v
+            if k == 'prependBucketPath':
+                b_prependBucketPath = v
+            if k == 'substr':
+                str_subString = v
 
         # Remove any leading noise on the str_path, specifically
         # any leading '.' characters.
         # This is probably not very robust!
-        while str_path[:1] == '.':  str_path    = str_path[1:]
+        while str_path[:1] == '.':
+            str_path = str_path[1:]
 
-        d_conn          = self.connect(**kwargs)
+        d_conn = self.connect(**kwargs)
         if d_conn['status']:
-            conn        = d_conn['conn']
+            conn = d_conn['conn']
             if b_prependBucketPath:
-                str_fullPath    = '%s%s' % (d_conn['prependBucketPath'], str_path)
+                str_fullPath = '%s%s' % (d_conn['prependBucketPath'], str_path)
             else:
-                str_fullPath    = str_path
+                str_fullPath = str_path
 
             # get the full list of objects in Swift storage with given prefix
             ld_obj = conn.get_container(
-                        d_conn['container_name'],
-                        prefix          = str_fullPath,
-                        full_listing    = True)[1]
+                d_conn['container_name'],
+                prefix=str_fullPath,
+                full_listing=True)[1]
 
             if len(str_subString):
-                ld_obj  = [x for x in ld_obj if str_subString in x['name']]
+                ld_obj = [x for x in ld_obj if str_subString in x['name']]
 
-            l_ls    = [x['name'] for x in ld_obj]
-            if len(l_ls):   b_status    = True
+            l_ls = [x['name'] for x in ld_obj]
+            if len(l_ls):
+                b_status = True
 
         return {
-            'status':       b_status,
-            'objectDict':   ld_obj,
-            'lsList':       l_ls,
-            'fullPath':     str_fullPath
+            'status': b_status,
+            'objectDict': ld_obj,
+            'lsList': l_ls,
+            'fullPath': str_fullPath
         }
 
     def objExists(self, *args, **kwargs):
         """
         Return True/False if passed object exists in swift storage
         """
-        b_exists    = False
-        str_obj     = ''
+        b_exists = False
+        str_obj = ''
 
-        for k,v in kwargs.items():
-            if k == 'obj':                  str_obj             = v
+        for k, v in kwargs.items():
+            if k == 'obj':
+                str_obj = v
 
-        kwargs['path']  = str_obj
-        d_swift_ls  = self.ls(*args, **kwargs)
-        str_obj     = d_swift_ls['fullPath']
+        kwargs['path'] = str_obj
+        d_swift_ls = self.ls(*args, **kwargs)
+        str_obj = d_swift_ls['fullPath']
 
         if d_swift_ls['status']:
             for obj in d_swift_ls['lsList']:
@@ -502,35 +518,36 @@ class swiftStorage(PfStorage):
                     b_exists = True
 
         return {
-            'status':   b_exists,
-            'objPath':  str_obj
+            'status': b_exists,
+            'objPath': str_obj
         }
 
     def objPut_process(self, *args, **kwargs):
         """
         Process the 'objPut' directive.
         """
-        d_ret       = {
-            'status':   False,
-            'msg':      "No 'meta' JSON directive found in request"
+        d_ret = {
+            'status': False,
+            'msg': "No 'meta' JSON directive found in request"
         }
-        d_msg       = {}
-        d_meta      = {}
+        d_msg = {}
+        d_meta = {}
         str_putSpec = ""
 
         for k, v in kwargs.items():
-            if k == 'request':      d_msg       = v
+            if k == 'request':
+                d_msg = v
 
         if 'meta' in d_msg:
-            d_meta              = d_msg['meta']
+            d_meta = d_msg['meta']
             if 'putSpec' in d_meta:
-                str_putSpec         = d_meta['putSpec']
-                d_fileList          = self.filesFind(root = str_putSpec)
+                str_putSpec = d_meta['putSpec']
+                d_fileList = self.filesFind(root=str_putSpec)
                 if d_fileList['status']:
-                    d_meta['fileList']  = d_fileList['l_fileFS']
-                    d_ret               = self.objPut(**d_meta)
+                    d_meta['fileList'] = d_fileList['l_fileFS']
+                    d_ret = self.objPut(**d_meta)
                 else:
-                    d_ret['msg']    = 'No valid file list generated'
+                    d_ret['msg'] = 'No valid file list generated'
 
         return d_ret
 
@@ -564,42 +581,46 @@ class swiftStorage(PfStorage):
         Note that the <inLocation> is subject to <b_prependBucketPath>!
 
         """
-        b_status                = True
-        l_localfile             = []    # Name on the local file system
-        l_objectfile            = []    # Name in the object storage
-        str_swiftLocation       = ''
-        str_mapLocationOver     = ''
-        str_localfilename       = ''
-        str_storagefilename     = ''
-        str_prependBucketPath   = ''
-        d_ret                   = {
-            'status':           b_status,
-            'localFileList':    [],
-            'objectFileList':   [],
-            'localpath':        ''
+        b_status = True
+        l_localfile = []    # Name on the local file system
+        l_objectfile = []    # Name in the object storage
+        str_swiftLocation = ''
+        str_mapLocationOver = ''
+        str_localfilename = ''
+        str_storagefilename = ''
+        str_prependBucketPath = ''
+        d_ret = {
+            'status': b_status,
+            'localFileList': [],
+            'objectFileList': [],
+            'localpath': ''
         }
 
-        d_conn  = self.connect(*args, **kwargs)
+        d_conn = self.connect(*args, **kwargs)
         if d_conn['status']:
-            str_prependBucketPath       = d_conn['prependBucketPath']
+            str_prependBucketPath = d_conn['prependBucketPath']
 
-        str_swiftLocation               = str_prependBucketPath
+        str_swiftLocation = str_prependBucketPath
 
-        for k,v in kwargs.items():
-            if k == 'file':             l_localfile.append(v)
-            if k == 'fileList':         l_localfile         = v
-            if k == 'inLocation':       str_swiftLocation   = '%s%s' % (str_prependBucketPath, v)
-            if k == 'mapLocationOver':  str_mapLocationOver = v
+        for k, v in kwargs.items():
+            if k == 'file':
+                l_localfile.append(v)
+            if k == 'fileList':
+                l_localfile = v
+            if k == 'inLocation':
+                str_swiftLocation = '%s%s' % (str_prependBucketPath, v)
+            if k == 'mapLocationOver':
+                str_mapLocationOver = v
 
         if len(str_mapLocationOver):
             # replace the local file path with object store path
-            l_objectfile    = [w.replace(str_mapLocationOver, str_swiftLocation) \
-                                for w in l_localfile]
+            l_objectfile = [w.replace(str_mapLocationOver, str_swiftLocation)
+                            for w in l_localfile]
         else:
             # Prepend the swiftlocation to each element in the localfile list:
-            l_objectfile    = [str_swiftLocation + '{0}'.format(i) for i in l_localfile]
+            l_objectfile = [str_swiftLocation + '{0}'.format(i) for i in l_localfile]
 
-        d_ret['localpath']  = os.path.dirname(l_localfile[0])
+        d_ret['localpath'] = os.path.dirname(l_localfile[0])
 
         if d_conn['status']:
             for str_localfilename, str_storagefilename in zip(l_localfile, l_objectfile):
@@ -612,7 +633,7 @@ class swiftStorage(PfStorage):
                             contents=fp.read()
                         )
                 except Exception as e:
-                    d_ret['error']  = e
+                    d_ret['error'] = e
                     d_ret['status'] = False
                 d_ret['localFileList'].append(str_localfilename)
                 d_ret['objectFileList'].append(str_storagefilename)
@@ -622,19 +643,20 @@ class swiftStorage(PfStorage):
         """
         Process the 'objPull' directive.
         """
-        d_ret       = {
-            'status':   False,
-            'msg':      "No 'meta' JSON directive found in request"
+        d_ret = {
+            'status': False,
+            'msg': "No 'meta' JSON directive found in request"
         }
-        d_msg       = {}
-        d_meta      = {}
+        d_msg = {}
+        d_meta = {}
 
         for k, v in kwargs.items():
-            if k == 'request':      d_msg       = v
+            if k == 'request':
+                d_msg = v
 
         if 'meta' in d_msg:
-            d_meta  = d_msg['meta']
-            d_ret   = self.objPull(**d_meta)
+            d_meta = d_msg['meta']
+            d_ret = self.objPull(**d_meta)
 
         return d_ret
 
@@ -663,68 +685,71 @@ class swiftStorage(PfStorage):
         location will be the 'inLocation' prefixed with a '/'.
 
         """
-        b_status                = True
-        l_localfile             = []    # Name on the local file system
-        l_objectfile            = []    # Name in the object storage
-        str_swiftLocation       = ''
-        str_mapLocationOver     = ''
-        str_localfilename       = ''
-        str_storagefilename     = ''
-        str_prependBucketPath   = ''
-        d_ret                   = {
-            'status':           b_status,
-            'localFileList':    [],
-            'objectFileList':   [],
-            'localpath':        ''
+        b_status = True
+        l_localfile = []    # Name on the local file system
+        l_objectfile = []    # Name in the object storage
+        str_swiftLocation = ''
+        str_mapLocationOver = ''
+        str_localfilename = ''
+        str_storagefilename = ''
+        str_prependBucketPath = ''
+        d_ret = {
+            'status': b_status,
+            'localFileList': [],
+            'objectFileList': [],
+            'localpath': ''
         }
 
-        d_conn  = self.connect(*args, **kwargs)
+        d_conn = self.connect(*args, **kwargs)
         if d_conn['status']:
-            str_prependBucketPath       = d_conn['prependBucketPath']
+            str_prependBucketPath = d_conn['prependBucketPath']
 
-        str_swiftLocation               = str_prependBucketPath
+        str_swiftLocation = str_prependBucketPath
 
-        for k,v in kwargs.items():
-            if k == 'fromLocation':     str_swiftLocation   = '%s%s' % (str_prependBucketPath, v)
-            if k == 'mapLocationOver':  str_mapLocationOver = v
+        for k, v in kwargs.items():
+            if k == 'fromLocation':
+                str_swiftLocation = '%s%s' % (str_prependBucketPath, v)
+            if k == 'mapLocationOver':
+                str_mapLocationOver = v
 
         # Get dictionary of objects in storage
-        d_ls            = self.ls(*args, **kwargs)
+        d_ls = self.ls(*args, **kwargs)
 
         # List of objects in storage
-        l_objectfile    = [x['name'] for x in d_ls['objectDict']]
+        l_objectfile = [x['name'] for x in d_ls['objectDict']]
 
         if len(str_mapLocationOver):
             # replace the local file path with object store path
-            l_localfile         = [w.replace(str_swiftLocation, str_mapLocationOver) \
-                                    for w in l_objectfile]
+            l_localfile = [w.replace(str_swiftLocation, str_mapLocationOver)
+                           for w in l_objectfile]
         else:
             # Prepend a '/' to each element in the l_objectfile:
-            l_localfile         = ['/' + '{0}'.format(i) for i in l_objectfile]
-            str_mapLocationOver =  '/' + str_swiftLocation
+            l_localfile = ['/' + '{0}'.format(i) for i in l_objectfile]
+            str_mapLocationOver = '/' + str_swiftLocation
 
-        d_ret['localpath']          = str_mapLocationOver
-        d_ret['currentWorkingDir']  = os.getcwd()
+        d_ret['localpath'] = str_mapLocationOver
+        d_ret['currentWorkingDir'] = os.getcwd()
 
         if d_conn['status']:
             for str_localfilename, str_storagefilename in zip(l_localfile, l_objectfile):
                 try:
                     d_ret['status'] = True and d_ret['status']
-                    obj_tuple       = d_conn['conn'].get_object(
-                                                    d_conn['container_name'],
-                                                    str_storagefilename
-                                                )
-                    str_parentDir   = os.path.dirname(str_localfilename)
-                    os.makedirs(str_parentDir, exist_ok = True)
+                    obj_tuple = d_conn['conn'].get_object(
+                        d_conn['container_name'],
+                        str_storagefilename
+                    )
+                    str_parentDir = os.path.dirname(str_localfilename)
+                    os.makedirs(str_parentDir, exist_ok=True)
                     with open(str_localfilename, 'wb') as fp:
                         # fp.write(str(obj_tuple[1], 'utf-8'))
                         fp.write(obj_tuple[1])
                 except Exception as e:
-                    d_ret['error']  = str(e)
+                    d_ret['error'] = str(e)
                     d_ret['status'] = False
                 d_ret['localFileList'].append(str_localfilename)
                 d_ret['objectFileList'].append(str_storagefilename)
         return d_ret
+
 
 class StoreHandler(BaseHTTPRequestHandler):
 
@@ -733,28 +758,32 @@ class StoreHandler(BaseHTTPRequestHandler):
         Handler constructor
         """
 
-        global  Gd_args, Gstr_description, Gstr_version, Gstr_name
+        global Gd_args, Gstr_description, Gstr_version, Gstr_name
 
-        for k,v in kwargs.items():
-            if k == 'args':     Gd_args             = v
-            if k == 'name':     Gstr_name           = v
-            if k == 'desc':     Gstr_description    = v
-            if k == 'version':  Gstr_version        = v
+        for k, v in kwargs.items():
+            if k == 'args':
+                Gd_args = v
+            if k == 'name':
+                Gstr_name = v
+            if k == 'desc':
+                Gstr_description = v
+            if k == 'version':
+                Gstr_version = v
 
-        kwargs['args']          = Gd_args
-        kwargs['name']          = Gstr_name
-        kwargs['desc']          = Gstr_description
-        kwargs['version']       = Gstr_version
+        kwargs['args'] = Gd_args
+        kwargs['name'] = Gstr_name
+        kwargs['desc'] = Gstr_description
+        kwargs['version'] = Gstr_version
 
-        self.storage            = swiftStorage(
-                                        *args,
-                                        **kwargs
-                                    )
+        self.storage = swiftStorage(
+            *args,
+            **kwargs
+        )
 
-        self.dp         = pfmisc.debug(
-                                    verbosity   = int(Gd_args['verbosity']),
-                                    within      = S.T.cat('/this/name')
-                                    )
+        self.dp = pfmisc.debug(
+            verbosity=int(Gd_args['verbosity']),
+            within=S.T.cat('/this/name')
+        )
         BaseHTTPRequestHandler.__init__(self, *args)
 
     # Python code to demonstrate
@@ -787,31 +816,31 @@ class StoreHandler(BaseHTTPRequestHandler):
         Process (ajax transmitted) flattened dictionary
         """
         r = {}
-        for k,v in d.items():
+        for k, v in d.items():
             if ']' in k:
                 k = k.replace(']', '')
             if '[' in k:
                 k = k.replace('[', '_')
-            r[k]    = v
+            r[k] = v
         return r
 
     def do_GET(self):
-        d_ret               = {}
-        str_query           = urllib.parse.urlsplit(self.path).query
-        d_server            = FL2dict(str_query)()
+        d_ret = {}
+        str_query = urllib.parse.urlsplit(self.path).query
+        d_server = FL2dict(str_query)()
         try:
-            d_meta          = d_server['meta']
+            d_meta = d_server['meta']
         except:
             self.dp.qprint(
-                    "An error occurred in parsing input JSON",
-                    comms = 'error'
-                    )
-        d_msg               = {
-                                'action': d_server['action'],
-                                'meta': d_meta
-                            }
+                "An error occurred in parsing input JSON",
+                comms='error'
+            )
+        d_msg = {
+            'action': d_server['action'],
+            'meta': d_meta
+        }
         print("Request: " + str(self.headers) + '\n' + str(d_msg))
-        self.dp.qprint(self.path, comms = 'rx')
+        self.dp.qprint(self.path, comms='rx')
         return d_ret
 
     def internalctl_process(self, *args, **kwargs):
@@ -849,44 +878,46 @@ class StoreHandler(BaseHTTPRequestHandler):
         :param kwargs:
         :return:
         """
-        self.dp.qprint("hello_process()", comms = 'status')
-        b_status            = False
-        d_ret               = {}
-        d_request           = {}
+        self.dp.qprint("hello_process()", comms='status')
+        b_status = False
+        d_ret = {}
+        d_request = {}
         for k, v in kwargs.items():
-            if k == 'request':      d_request   = v
+            if k == 'request':
+                d_request = v
 
-        d_meta  = d_request['meta']
+        d_meta = d_request['meta']
         if 'askAbout' in d_meta.keys():
-            str_askAbout    = d_meta['askAbout']
-            d_ret['name']       = S.T.cat('/this/name')
-            d_ret['version']    = S.T.cat('/this/version')
+            str_askAbout = d_meta['askAbout']
+            d_ret['name'] = S.T.cat('/this/name')
+            d_ret['version'] = S.T.cat('/this/version')
             if str_askAbout == 'timestamp':
-                str_timeStamp   = datetime.datetime.today().strftime('%Y%m%d%H%M%S.%f')
-                d_ret['timestamp']              = {}
-                d_ret['timestamp']['now']       = str_timeStamp
-                b_status                        = True
+                str_timeStamp = datetime.datetime.today().strftime('%Y%m%d%H%M%S.%f')
+                d_ret['timestamp'] = {}
+                d_ret['timestamp']['now'] = str_timeStamp
+                b_status = True
             if str_askAbout == 'sysinfo':
-                d_ret['sysinfo']                = {}
-                d_ret['sysinfo']['system']      = platform.system()
-                d_ret['sysinfo']['machine']     = platform.machine()
-                d_ret['sysinfo']['platform']    = platform.platform()
-                d_ret['sysinfo']['uname']       = platform.uname()
-                d_ret['sysinfo']['version']     = platform.version()
-                d_ret['sysinfo']['memory']      = psutil.virtual_memory()
-                d_ret['sysinfo']['cpucount']    = multiprocessing.cpu_count()
-                d_ret['sysinfo']['loadavg']     = os.getloadavg()
+                d_ret['sysinfo'] = {}
+                d_ret['sysinfo']['system'] = platform.system()
+                d_ret['sysinfo']['machine'] = platform.machine()
+                d_ret['sysinfo']['platform'] = platform.platform()
+                d_ret['sysinfo']['uname'] = platform.uname()
+                d_ret['sysinfo']['version'] = platform.version()
+                d_ret['sysinfo']['memory'] = psutil.virtual_memory()
+                d_ret['sysinfo']['cpucount'] = multiprocessing.cpu_count()
+                d_ret['sysinfo']['loadavg'] = os.getloadavg()
                 d_ret['sysinfo']['cpu_percent'] = psutil.cpu_percent()
-                d_ret['sysinfo']['hostname']    = socket.gethostname()
-                d_ret['sysinfo']['inet']        = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
-                b_status                        = True
+                d_ret['sysinfo']['hostname'] = socket.gethostname()
+                d_ret['sysinfo']['inet'] = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [
+                                                        [(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+                b_status = True
             if str_askAbout == 'echoBack':
-                d_ret['echoBack']               = {}
-                d_ret['echoBack']['msg']        = d_meta['echoBack']
-                b_status                        = True
+                d_ret['echoBack'] = {}
+                d_ret['echoBack']['msg'] = d_meta['echoBack']
+                b_status = True
 
-        return { 'd_ret':       d_ret,
-                 'status':      b_status}
+        return {'d_ret': d_ret,
+                'status': b_status}
 
     def key_dereference(self, *args, **kwargs):
         """
@@ -899,28 +930,29 @@ class StoreHandler(BaseHTTPRequestHandler):
         }
 
         """
-        self.dp.qprint("key_dereference()", comms = 'status')
+        self.dp.qprint("key_dereference()", comms='status')
 
-        b_status    = False
-        d_request   = {}
-        str_key     = ''
-        for k,v in kwargs.items():
-            if k == 'request':      d_request   = v
+        b_status = False
+        d_request = {}
+        str_key = ''
+        for k, v in kwargs.items():
+            if k == 'request':
+                d_request = v
 
         # self.dp.qprint("d_request = %s" % d_request)
 
         if 'meta-store' in d_request:
-            d_metaStore     = d_request['meta-store']
+            d_metaStore = d_request['meta-store']
             if 'meta' in d_metaStore:
-                str_storeMeta   = d_metaStore['meta']
-                str_storeKey    = d_metaStore['key']
+                str_storeMeta = d_metaStore['meta']
+                str_storeKey = d_metaStore['key']
                 if str_storeKey in d_request[str_storeMeta].keys():
-                    str_key     = d_request[str_storeMeta][str_storeKey]
-                    b_status    = True
-                    self.dp.qprint("key = %s" % str_key, comms = 'status')
+                    str_key = d_request[str_storeMeta][str_storeKey]
+                    b_status = True
+                    self.dp.qprint("key = %s" % str_key, comms='status')
         return {
-            'status':   b_status,
-            'key':      str_key
+            'status': b_status,
+            'key': str_key
         }
 
     def do_POST_actionParse(self, d_msg):
@@ -936,49 +968,49 @@ class StoreHandler(BaseHTTPRequestHandler):
         # might return a different dictionary. It is NOT safe to
         # assume that all action processing methods will honor this
         # tempate.
-        d_actionResult      = {
-            'status':       True,
-            'msg':          ''
+        d_actionResult = {
+            'status': True,
+            'msg': ''
         }
 
-        self.dp.qprint("verb: %s detected." % d_msg['action'], comms = 'status')
-        str_method      = '%s_process' % d_msg['action']
-        self.dp.qprint("method to call: %s(request = d_msg) " % str_method, comms = 'status')
+        self.dp.qprint("verb: %s detected." % d_msg['action'], comms='status')
+        str_method = '%s_process' % d_msg['action']
+        self.dp.qprint("method to call: %s(request = d_msg) " % str_method, comms='status')
         try:
             # pudb.set_trace()
-            method              = getattr(self, str_method)
-            d_actionResult      = method(request = d_msg)
+            method = getattr(self, str_method)
+            d_actionResult = method(request=d_msg)
         except Exception as e:
-            str_msg     = "Error in Class '{}' calling method '{}'".format(
-                                    self.__class__.__name__,
-                                    str_method)
-            d_actionResult      = {
-                'status':   False,
-                'msg':      str_msg + ': ' + str(e)
+            str_msg = "Error in Class '{}' calling method '{}'".format(
+                self.__class__.__name__,
+                str_method)
+            d_actionResult = {
+                'status': False,
+                'msg': str_msg + ': ' + str(e)
             }
-            self.dp.qprint(str_msg, comms = 'error')
-        self.dp.qprint(json.dumps(d_actionResult, indent = 4), comms = 'tx')
+            self.dp.qprint(str_msg, comms='error')
+        self.dp.qprint(json.dumps(d_actionResult, indent=4), comms='tx')
 
         return d_actionResult
 
     def do_POST_serverctl(self, d_meta):
         """
         """
-        d_ctl   = d_meta['ctl']
-        d_ret   = {
-            'status':   True,
-            'msg':      ''
+        d_ctl = d_meta['ctl']
+        d_ret = {
+            'status': True,
+            'msg': ''
         }
-        self.dp.qprint('Processing server ctl...', comms = 'status')
-        self.dp.qprint(d_meta, comms = 'rx')
+        self.dp.qprint('Processing server ctl...', comms='status')
+        self.dp.qprint(d_meta, comms='rx')
         if 'serverCmd' in d_ctl:
             if d_ctl['serverCmd'] == 'quit':
-                self.dp.qprint('Shutting down server', comms = 'status')
+                self.dp.qprint('Shutting down server', comms='status')
                 d_ret = {
-                    'msg':      'Server shut down',
-                    'status':   True
+                    'msg': 'Server shut down',
+                    'status': True
                 }
-                self.dp.qprint(d_ret, comms = 'tx')
+                self.dp.qprint(d_ret, comms='tx')
                 self.ret_client(d_ret)
                 os._exit(0)
         return d_ret
@@ -1002,12 +1034,11 @@ class StoreHandler(BaseHTTPRequestHandler):
         Returns a form from cgi.FieldStorage
         """
         return cgi.FieldStorage(
-            fp = self.rfile,
-            headers = self.headers,
-            environ =
-            {
-                'REQUEST_METHOD':   str_verb,
-                'CONTENT_TYPE':     self.headers['Content-Type'],
+            fp=self.rfile,
+            headers=self.headers,
+            environ={
+                'REQUEST_METHOD': str_verb,
+                'CONTENT_TYPE': self.headers['Content-Type'],
             }
         )
 
@@ -1031,30 +1062,30 @@ class StoreHandler(BaseHTTPRequestHandler):
         standards.
         """
 
-        waitLoop    = 5
+        waitLoop = 5
         waitSeconds = 5
-        b_status    = False
-        d_msg       = {}
+        b_status = False
+        d_msg = {}
 
-        self.dp.qprint("Unpacking multi-part form message...", comms = 'status')
-        self.dp.qprint('form length = %d' % len(form), comms = 'status')
+        self.dp.qprint("Unpacking multi-part form message...", comms='status')
+        self.dp.qprint('form length = %d' % len(form), comms='status')
         self.dp.qprint('form keys   = %s' % form.keys())
         for w in range(0, waitLoop):
             if 'd_msg' not in form:
                 self.dp.qprint("\tPossibly FATAL error -- no 'd_msg' found in form!",
-                                comms = 'error')
-                self.dp.qprint("\tWaiting for %d seconds. Waitloop %d of %d..." % \
-                                (waitSeconds, w, waitLoop),
-                                comms = 'error')
+                               comms='error')
+                self.dp.qprint("\tWaiting for %d seconds. Waitloop %d of %d..." %
+                               (waitSeconds, w, waitLoop),
+                               comms='error')
                 time.sleep(waitSeconds)
             if len(form) == 3:
                 for key in form:
-                    self.dp.qprint("\tUnpacking field '%s..." % key, comms = 'rx')
+                    self.dp.qprint("\tUnpacking field '%s..." % key, comms='rx')
                     if key == "local":
                         d_form[key] = form[key].file
                     else:
-                        d_form[key]     = form.getvalue(key)
-                b_status    = True
+                        d_form[key] = form.getvalue(key)
+                b_status = True
                 break
         if b_status:
             d_msg = json.loads(d_form['d_msg'])
@@ -1069,38 +1100,38 @@ class StoreHandler(BaseHTTPRequestHandler):
         Return a structure containing the data POSTED by a remote client
         """
 
-        b_fileStream        = False
-        d_ret               = {
-            'status':       True,
-            'mode':         '',
-            'd_data':       {},
-            'form':         None,
-            'd_form':       {}
+        b_fileStream = False
+        d_ret = {
+            'status': True,
+            'mode': '',
+            'd_data': {},
+            'form': None,
+            'd_form': {}
         }
 
         self.dp.qprint("Headers received = \n" + str(self.headers),
-                        comms = 'rx')
+                       comms='rx')
 
         if 'Mode' in self.headers:
             if self.headers['mode'] != 'control':
-                b_fileStream    = True
-                d_ret['mode']   = 'form'
+                b_fileStream = True
+                d_ret['mode'] = 'form'
             else:
-                d_ret['mode']   = 'control'
+                d_ret['mode'] = 'control'
         if b_fileStream:
-            form                = self.form_get('POST')
+            form = self.form_get('POST')
             if len(form):
-                d_ret['form']   = form
+                d_ret['form'] = form
                 d_ret['d_data'] = self.unpackForm(form, d_ret['d_form'])
                 d_ret['status'] = d_ret['d_data']['status']
         else:
-            self.dp.qprint("Parsing JSON data...", comms = 'status')
-            length          = self.getContentLength()
-            payload         = self.rfile.read(length).decode()
+            self.dp.qprint("Parsing JSON data...", comms='status')
+            length = self.getContentLength()
+            payload = self.rfile.read(length).decode()
             try:
-                d_post          = json.loads(payload)
+                d_post = json.loads(payload)
             except:
-                d_post          = FL2dict(payload)()
+                d_post = FL2dict(payload)()
 
             try:
                 d_ret['d_data'] = d_post['payload']
@@ -1119,43 +1150,44 @@ class StoreHandler(BaseHTTPRequestHandler):
         """
 
         # pudb.set_trace()
-        b_skipInit  = False
-        d_msg       = {
-            'status':   False
+        b_skipInit = False
+        d_msg = {
+            'status': False
         }
         d_postParse = {
-            'status':   False
+            'status': False
         }
 
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             if k == 'd_msg':
-                d_msg       = v
-                b_skipInit  = True
+                d_msg = v
+                b_skipInit = True
 
         if not b_skipInit:
-            d_postParse     = self.do_POST_dataParse()
+            d_postParse = self.do_POST_dataParse()
             try:
-                d_msg                   = d_postParse['d_data']
+                d_msg = d_postParse['d_data']
             except:
-                d_msg['errorMessage']   = "No 'd_data' in postParse."
+                d_msg['errorMessage'] = "No 'd_data' in postParse."
 
         self.dp.qprint('d_msg = \n%s' %
-                        json.dumps(
-                            d_msg, indent = 4
-                        ), comms = 'status')
+                       json.dumps(
+                           d_msg, indent=4
+                       ), comms='status')
 
         if d_postParse['status']:
-            d_meta      = d_msg['meta']
+            d_meta = d_msg['meta']
 
             if 'action' in d_msg and 'transport' not in d_meta:
-                d_ret   = self.do_POST_actionParse(d_msg)
+                d_ret = self.do_POST_actionParse(d_msg)
 
             if 'ctl' in d_meta:
-                d_ret   = self.do_POST_serverctl(d_meta)
+                d_ret = self.do_POST_serverctl(d_meta)
 
-            if not b_skipInit: self.ret_client(d_ret)
+            if not b_skipInit:
+                self.ret_client(d_ret)
         else:
-            d_ret       = d_msg
+            d_ret = d_msg
         return d_ret
 
     def ret_client(self, d_ret):
@@ -1167,7 +1199,7 @@ class StoreHandler(BaseHTTPRequestHandler):
         """
         # pudb.set_trace()
         if not Gd_args['b_httpResponse']:
-            self.wfile.write(json.dumps(d_ret, indent = 4).encode())
+            self.wfile.write(json.dumps(d_ret, indent=4).encode())
         else:
             self.send_response(200)
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -1180,17 +1212,17 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     Handle requests in a separate thread.
     """
 
-    def col2_print(self, str_left, str_right, level = 1):
+    def col2_print(self, str_left, str_right, level=1):
         self.dp.qprint(Colors.WHITE +
-              ('%*s' % (self.LC, str_left)),
-              end       = '',
-              syslog    = False,
-              level     = level)
+                       ('%*s' % (self.LC, str_left)),
+                       end='',
+                       syslog=False,
+                       level=level)
         self.dp.qprint(Colors.LIGHT_BLUE +
-              ('%*s' % (self.RC, str_right)) +
-              Colors.NO_COLOUR,
-              syslog    = False,
-              level     = level)
+                       ('%*s' % (self.RC, str_right)) +
+                       Colors.NO_COLOUR,
+                       syslog=False,
+                       level=level)
 
     def __init__(self, *args, **kwargs):
         """
@@ -1200,8 +1232,8 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
         :return:
         """
         HTTPServer.__init__(self, *args, **kwargs)
-        self.LC     = 40
-        self.RC     = 40
+        self.LC = 40
+        self.RC = 40
 
     def setup(self, **kwargs):
         global Gd_args
@@ -1209,43 +1241,48 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
         global Gstr_description
         global Gstr_version
 
-        str_defIP       = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
-        str_defIPswift  = str_defIP
+        str_defIP = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [
+                                 [(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+        str_defIPswift = str_defIP
 
         if 'HOST_IP' in os.environ:
-            str_defIP       = os.environ['HOST_IP']
-            str_defIPswift  = os.environ['HOST_IP']
+            str_defIP = os.environ['HOST_IP']
+            str_defIPswift = os.environ['HOST_IP']
 
         # For newer docker-compose
         try:
-            swift_service   = socket.gethostbyname('swift_service')
+            swift_service = socket.gethostbyname('swift_service')
             if swift_service != "127.0.0.1":
-                str_defIPswift  = str_defIP
+                str_defIPswift = str_defIP
         except:
             pass
 
-        for k,v in kwargs.items():
-            if k == 'args': Gd_args             = v
-            if k == 'name': Gstr_name           = v
-            if k == 'desc': Gstr_description    = v
-            if k == 'ver':  Gstr_version        = v
+        for k, v in kwargs.items():
+            if k == 'args':
+                Gd_args = v
+            if k == 'name':
+                Gstr_name = v
+            if k == 'desc':
+                Gstr_description = v
+            if k == 'ver':
+                Gstr_version = v
 
-        self.verbosity      = int(Gd_args['verbosity'])
-        self.dp             = debug(verbosity = self.verbosity)
-        self.args           = Gd_args
+        self.verbosity = int(Gd_args['verbosity'])
+        self.dp = debug(verbosity=self.verbosity)
+        self.args = Gd_args
 
-        self.col2_print("This host IP:",            str_defIPswift)
-        self.col2_print("Self service address:",    Gd_args['ipSelf'])
-        self.col2_print("Self service port:",       Gd_args['portSelf'])
-        self.col2_print("Swift service address:",   Gd_args['ipSwift'])
-        self.col2_print("Swift service port:",      Gd_args['portSwift'])
-        self.col2_print("Server listen forever:",   Gd_args['b_forever'])
-        self.col2_print("Return HTTP responses:",   Gd_args['b_httpResponse'])
+        self.col2_print("This host IP:", str_defIPswift)
+        self.col2_print("Self service address:", Gd_args['ipSelf'])
+        self.col2_print("Self service port:", Gd_args['portSelf'])
+        self.col2_print("Swift service address:", Gd_args['ipSwift'])
+        self.col2_print("Swift service port:", Gd_args['portSwift'])
+        self.col2_print("Server listen forever:", Gd_args['b_forever'])
+        self.col2_print("Return HTTP responses:", Gd_args['b_httpResponse'])
 
         self.dp.qprint(
-                Colors.LIGHT_GREEN +
-                "\n\n\t\t\tWaiting for incoming data...\n" +
-                Colors.NO_COLOUR,
-                level   = 1,
-                syslog  = False
-            )
+            Colors.LIGHT_GREEN +
+            "\n\n\t\t\tWaiting for incoming data...\n" +
+            Colors.NO_COLOUR,
+            level=1,
+            syslog=False
+        )

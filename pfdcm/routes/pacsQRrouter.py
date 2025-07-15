@@ -11,23 +11,24 @@ str_description = """
 """
 
 
-from    fastapi             import  APIRouter, Query, HTTPException, BackgroundTasks
-from    fastapi.encoders    import  jsonable_encoder
-from    typing              import  List, Dict
+from fastapi import APIRouter, Query, HTTPException, BackgroundTasks
+from fastapi.encoders import jsonable_encoder
+from typing import List, Dict
 
-from    models              import  pacsQRmodel
-from    controllers         import  pacsQRcontroller
+from pfdcm.models import pacsQRmodel
+from pfdcm.controllers import pacsQRcontroller
 
-from    datetime            import datetime, timezone
-import  pudb
+from datetime import datetime, timezone
+import pudb
 
-router          = APIRouter()
-router.tags     = ['PACS QR services']
+router = APIRouter()
+router.tags = ['PACS QR services']
+
 
 @router.post(
     '/PACS/thread/pypx/',
-    response_model  = pacsQRmodel.PACSasync,
-    summary         = '''
+    response_model=pacsQRmodel.PACSasync,
+    summary='''
     Use this API route for RETRIEVE, PUSH, REGISTER operations and any others
     that might be possibly "long lived". The actual processing is dispatched
     to a separate thread so that the client receives a return immediately.
@@ -36,9 +37,9 @@ router.tags     = ['PACS QR services']
     '''
 )
 async def PACS_serviceHandler(
-        PACSservice         : pacsQRmodel.ValueStr,
-        listenerService     : pacsQRmodel.ValueStr,
-        PACSdirective       : pacsQRmodel.PACSqueryCore
+        PACSservice: pacsQRmodel.ValueStr,
+        listenerService: pacsQRmodel.ValueStr,
+        PACSdirective: pacsQRmodel.PACSqueryCore
 ):
     """Handler into PACS calls for long-lived compute (retrieve/push/register)
 
@@ -57,8 +58,8 @@ async def PACS_serviceHandler(
         listenerService (pacsQRmodel.ValueStr): The listener service that receives PACS comms
         PACSdirective (pacsQRmodel.PACSqueryCore): The instructions to the PACS
     """
-    b_usePythonAPI  = False
-    b_useCLI        = True
+    b_usePythonAPI = False
+    b_useCLI = True
 
     if b_usePythonAPI and not b_useCLI:
         return await PACS_serviceThreaded(
@@ -74,10 +75,11 @@ async def PACS_serviceHandler(
             PACSdirective
         )
 
+
 async def PACS_serviceThreaded(
-        PACSservice         : pacsQRmodel.ValueStr,
-        listenerService     : pacsQRmodel.ValueStr,
-        PACSdirective       : pacsQRmodel.PACSqueryCore
+        PACSservice: pacsQRmodel.ValueStr,
+        listenerService: pacsQRmodel.ValueStr,
+        PACSdirective: pacsQRmodel.PACSqueryCore
 ):
     """
     POST a `PACSdirective` to the `PACSservice`, and capture return comms
@@ -111,25 +113,26 @@ async def PACS_serviceThreaded(
     #                         )
 
     future = await pacsQRcontroller.pypx_threadedDo(
-                                PACSservice.value,
-                                listenerService.value,
-                                PACSdirective
-                            )
+        PACSservice.value,
+        listenerService.value,
+        PACSdirective
+    )
 
     return {
-            "directiveType"         : "threaded",
-            "response"              : {
-                'future.done'   : future.done(),
-                'note'          : 'POST the same payload with a "status" verb to track.'
-            },
-            "timestamp"             : '%s' % datetime.now(timezone.utc).astimezone().isoformat(),
-            "PACSdirective"         : PACSdirective
+        "directiveType": "threaded",
+        "response": {
+            'future.done': future.done(),
+            'note': 'POST the same payload with a "status" verb to track.'
+        },
+        "timestamp": '%s' % datetime.now(timezone.utc).astimezone().isoformat(),
+        "PACSdirective": PACSdirective
     }
 
+
 async def PACS_retrieveExec(
-        PACSservice         : pacsQRmodel.ValueStr,
-        listenerService     : pacsQRmodel.ValueStr,
-        PACSdirective       : pacsQRmodel.PACSqueryCore
+        PACSservice: pacsQRmodel.ValueStr,
+        listenerService: pacsQRmodel.ValueStr,
+        PACSdirective: pacsQRmodel.PACSqueryCore
 ):
     """
     POST a retrieve to the `PACSservice`. The actual retrieve call is a
@@ -148,35 +151,36 @@ async def PACS_retrieveExec(
     ------
     - PACSasync object
     """
-    d_exec  : dict  = {}
-    d_exec  = await pacsQRcontroller.pypx_multiprocessDo(
-                                PACSservice.value,
-                                listenerService.value,
-                                PACSdirective
-                            )
+    d_exec: dict = {}
+    d_exec = await pacsQRcontroller.pypx_multiprocessDo(
+        PACSservice.value,
+        listenerService.value,
+        PACSdirective
+    )
     return {
-            "directiveType"         : "shell",
-            "response"              : {
-                'job'           :  d_exec,
-                'note'          : 'POST the same payload with a "status" verb to track.'
-            },
-            "timestamp"             : '%s' % datetime.now(timezone.utc).astimezone().isoformat(),
-            "PACSdirective"         : PACSdirective
+        "directiveType": "shell",
+        "response": {
+            'job': d_exec,
+            'note': 'POST the same payload with a "status" verb to track.'
+        },
+        "timestamp": '%s' % datetime.now(timezone.utc).astimezone().isoformat(),
+        "PACSdirective": PACSdirective
     }
+
 
 @router.post(
     '/PACS/sync/pypx/',
     # response_model  = pacsQRmodel.PACSqueyReturnModel,
-    summary         = '''
+    summary='''
     Use this API route for STATUS operations and any others that block but
     which are "short lived". Since this is a synchronous operation, the call
     will only return on successful completion of the remote directive.
     '''
 )
 async def PACS_pypx(
-        PACSservice         : pacsQRmodel.ValueStr,
-        listenerService     : pacsQRmodel.ValueStr,
-        PACSdirective       : pacsQRmodel.PACSqueryCore
+        PACSservice: pacsQRmodel.ValueStr,
+        listenerService: pacsQRmodel.ValueStr,
+        PACSdirective: pacsQRmodel.PACSqueryCore
 ):
     """
     POST a retrieve to the `PACSservice`, and capture return communication
@@ -194,8 +198,7 @@ async def PACS_pypx(
     - PACSqueryReturnModel
     """
     return await pacsQRcontroller.pypx_do(
-            PACSservice.value,
-            listenerService.value,
-            PACSdirective
+        PACSservice.value,
+        listenerService.value,
+        PACSdirective
     )
-

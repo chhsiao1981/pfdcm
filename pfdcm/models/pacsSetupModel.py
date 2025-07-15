@@ -1,6 +1,6 @@
 str_description = """
 
-    The data model for the xinetd collection. 
+    The data model for the xinetd collection.
 
     Object instances are declared in the config module and here we create
     models of those object instances. So, the config module would declare
@@ -9,39 +9,43 @@ str_description = """
 
 """
 
-from    pydantic            import BaseModel, Field
-from    typing              import Optional, List, Dict
-from    datetime            import datetime
+from pydantic import BaseModel, Field
+from typing import Optional, List, Dict
+from datetime import datetime
 
-from    db                  import pfdb
-import  pudb
+from pfdcm.db import pfdb
+import pudb
+
 
 class PACSsetupCore(BaseModel):
     """The PACS service model"""
-    aet             : str   = "CHIPS"
-    aet_listener    : str   = "CHIPS"
-    aec             : str   = "ORTHANC"
-    serverIP        : str   = "192.168.1.189"
-    serverPort      : str   = "4242"
+    aet: str = "CHIPS"
+    aet_listener: str = "CHIPS"
+    aec: str = "ORTHANC"
+    serverIP: str = "192.168.1.189"
+    serverPort: str = "4242"
+
 
 class time(BaseModel):
     """A simple model that has a time string field"""
-    time            : str
+    time: str
+
 
 class PACSdbReturnModel(BaseModel):
     """
     A full model that is returned from a call to the DB
     """
-    info            : PACSsetupCore
-    time_created    : time
-    time_modified   : time
-    message         : str
+    info: PACSsetupCore
+    time_created: time
+    time_modified: time
+    message: str
+
 
 class PACSdbPutModel(BaseModel):
     """
     Model that illustrates what to PUT to the DB
     """
-    info            : PACSsetupCore
+    info: PACSsetupCore
     # WIP -- need to figure out how to be more pydantic, but for now... moving on
     # info            : dict = Field(
     #     pfdb.PACSsetupCore,
@@ -54,5 +58,7 @@ class PACSdbPutModel(BaseModel):
     # )
 
 # Some "helper" classes
+
+
 class ValueStr(BaseModel):
-    value:              str         = ""
+    value: str = ""

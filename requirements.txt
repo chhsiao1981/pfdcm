@@ -5,7 +5,3 @@ pudb
 webob
 pynetdicom
 pypx==3.11.22
-
-# Database
-motor
-dnspython

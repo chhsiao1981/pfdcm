@@ -1,6 +1,6 @@
-from    db                      import  pfdb
+from pfdcm.db import pfdb
 
-dbAPI   = pfdb.PFdb(
-    login   = 'chris',
-    passwd  = 'chris1234'
+dbAPI = pfdb.PFdb(
+    login='chris',
+    passwd='chris1234'
 )

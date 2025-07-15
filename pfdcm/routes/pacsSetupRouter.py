@@ -11,38 +11,39 @@ str_description = """
 """
 
 
-from    fastapi             import  APIRouter, Query
-from    fastapi.encoders    import  jsonable_encoder
-from    typing              import  List, Dict
+from fastapi import APIRouter, Query
+from fastapi.encoders import jsonable_encoder
+from typing import List, Dict
 
-from    models              import  pacsSetupModel
-from    controllers         import  pacsSetupController
+from pfdcm.models import pacsSetupModel
+from pfdcm.controllers import pacsSetupController
 
-from    datetime            import  datetime
-import  config
+from datetime import datetime
+from pfdcm import config
 
 
-#import  logging
-from    pflogf              import  FnndscLogFormatter
+# import  logging
+from pflogf import FnndscLogFormatter
 
 # pfstorage local dependencies
-import  pfmisc
-from    pfmisc.C_snode      import  *
-import  pfstate
-from    pfstate             import  S
+import pfmisc
+from pfmisc.C_snode import *
+import pfstate
+from pfstate import S
 
-router          = APIRouter()
-router.tags     = ['PACS setup services']
+router = APIRouter()
+router.tags = ['PACS setup services']
+
 
 @router.post(
     '/PACSservice/port/',
-    response_model  = pacsSetupModel.PACSdbReturnModel,
-    summary         = '''
+    response_model=pacsSetupModel.PACSdbReturnModel,
+    summary='''
     POST a change to the listener `port` of the PACS `objToUpdate`''',
 )
 async def PACSobj_portUpdate(
-        objToUpdate : pacsSetupModel.ValueStr,
-        newPort     : pacsSetupModel.ValueStr
+        objToUpdate: pacsSetupModel.ValueStr,
+        newPort: pacsSetupModel.ValueStr
 ):
     """
     Update the `server_port` of a given __objToUpdate__. This method is
@@ -59,10 +60,11 @@ async def PACSobj_portUpdate(
     """
     return pacsSetupController.obj_portUpdate(objToUpdate, newPort)
 
+
 @router.get(
     "/PACSservice/list/",
-    response_model  = List,
-    summary         = "GET the list of configured PACS services"
+    response_model=List,
+    summary="GET the list of configured PACS services"
 )
 async def serviceList_get():
     """
@@ -71,10 +73,11 @@ async def serviceList_get():
     # pudb.set_trace()
     return pacsSetupController.internalObjects_getList()
 
+
 @router.get(
     "/PACSservice/{PACSobjName}/",
-    response_model  = pacsSetupModel.PACSdbReturnModel,
-    summary         = "GET the information for a given PACS"
+    response_model=pacsSetupModel.PACSdbReturnModel,
+    summary="GET the information for a given PACS"
 )
 async def pacsSetup_get(
     PACSobjName: str
@@ -84,14 +87,15 @@ async def pacsSetup_get(
     """
     return pacsSetupController.internalObject_get(PACSobjName)
 
+
 @router.put(
     "/PACSservice/{PACSobjName}/",
-    response_model  = pacsSetupModel.PACSdbReturnModel,
-    summary         = "PUT information to a (possibly new) PACS object"
+    response_model=pacsSetupModel.PACSdbReturnModel,
+    summary="PUT information to a (possibly new) PACS object"
 )
 async def pacsSetup_put(
-    PACSobjName     : str,
-    PACSsetupData   : pacsSetupModel.PACSdbPutModel
+    PACSobjName: str,
+    PACSsetupData: pacsSetupModel.PACSdbPutModel
 ):
     """
     PUT an entire object. If the object already exists, overwrite.

@@ -4,32 +4,33 @@ str_description = """
 """
 
 
-from    fastapi             import  APIRouter, Query
-from    fastapi.encoders    import  jsonable_encoder
-from    typing              import  List, Dict
+from fastapi import APIRouter, Query
+from fastapi.encoders import jsonable_encoder
+from typing import List, Dict
 
-from    models              import  listenerModel
-from    controllers         import  listenerController
+from pfdcm.models import listenerModel
+from pfdcm.controllers import listenerController
 
-from    datetime            import  datetime
-import  config
+from datetime import datetime
+from pfdcm import config
 
-#import  logging
-from    pflogf              import  FnndscLogFormatter
+# import  logging
+from pflogf import FnndscLogFormatter
 
 # pfstorage local dependencies
-import  pfmisc
-from    pfmisc.C_snode      import  *
-import  pfstate
-from    pfstate             import  S
+import pfmisc
+from pfmisc.C_snode import *
+import pfstate
+from pfstate import S
 
-router          = APIRouter()
-router.tags     = ['listener subsystem services']
+router = APIRouter()
+router.tags = ['listener subsystem services']
+
 
 @router.get(
     "/listener/list/",
-    response_model  = List,
-    summary         = "GET the list of configured listener services"
+    response_model=List,
+    summary="GET the list of configured listener services"
 )
 async def serviceList_get():
     """
@@ -37,12 +38,13 @@ async def serviceList_get():
     """
     return listenerController.internalObjects_getList()
 
+
 @router.post(
     '/listener/initialize/',
-    summary         = 'POST a signal to the listener `objToInitialize`, triggering a self initialization',
+    summary='POST a signal to the listener `objToInitialize`, triggering a self initialization',
 )
 async def listener_initialize(
-        objToInitialize : listenerModel.ValueStr
+        objToInitialize: listenerModel.ValueStr
 ) -> dict:
     """
     Initialize the listener service for the object __objToInitialize__.
@@ -55,15 +57,16 @@ async def listener_initialize(
     ------
     - dictionary response from the initialization process
 
-    NOTE: A return / response model is not specified since the return from the 
+    NOTE: A return / response model is not specified since the return from the
     call is variable.
     """
     return listenerController.obj_initialize(objToInitialize)
 
+
 @router.get(
     "/listener/status/{listenerObjName}/",
-    response_model  = listenerModel.ListenerHandlerStatus,
-    summary         = "GET the listener subsystem status of a given listener object"
+    response_model=listenerModel.ListenerHandlerStatus,
+    summary="GET the listener subsystem status of a given listener object"
 )
 async def listenerStatus_get(listenerObjName: str):
     """
@@ -78,8 +81,8 @@ async def listenerStatus_get(listenerObjName: str):
 
 @router.get(
     "/listener/{listenerObjName}/",
-    response_model  = listenerModel.listenerDBreturnModel,
-    summary         = "GET information for a given listener object"
+    response_model=listenerModel.listenerDBreturnModel,
+    summary="GET information for a given listener object"
 )
 async def listener_get(listenerObjName: str):
     """
@@ -89,13 +92,14 @@ async def listener_get(listenerObjName: str):
     """
     return listenerController.internalObject_get(listenerObjName)
 
+
 @router.put("/listener/{listenerObjName}/xinetd/",
-    response_model  = listenerModel.XinetdDBReturnModel,
-    summary         = "PUT an xinetd update"
-)
+            response_model=listenerModel.XinetdDBReturnModel,
+            summary="PUT an xinetd update"
+            )
 async def item_putXinetd(
-    listenerObjName : str,
-    xinetdInfo      : listenerModel.XinetdDBPutModel
+    listenerObjName: str,
+    xinetdInfo: listenerModel.XinetdDBPutModel
 ):
     """
     PUT an entire xinetd object. If the object already exists, overwrite.
@@ -114,13 +118,14 @@ async def item_putXinetd(
     """
     return listenerController.service_update(listenerObjName, 'xinetd', xinetdInfo)
 
+
 @router.put("/listener/{listenerObjName}/dcmtk/",
-    response_model  = listenerModel.DcmtkDBReturnModel,
-    summary         = "PUT a dcmtk update"
-)
+            response_model=listenerModel.DcmtkDBReturnModel,
+            summary="PUT a dcmtk update"
+            )
 async def item_putDcmtk(
-    listenerObjName : str,
-    dcmtkInfo       : listenerModel.DcmtkDBPutModel
+    listenerObjName: str,
+    dcmtkInfo: listenerModel.DcmtkDBPutModel
 ):
     """
     PUT an entire dcmtk object. If the object already exists, overwrite.

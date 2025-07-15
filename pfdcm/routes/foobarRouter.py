@@ -10,18 +10,19 @@ str_description = """
 """
 
 
-from    fastapi             import APIRouter, Query
-from    fastapi.encoders    import jsonable_encoder
+from fastapi import APIRouter, Query
+from fastapi.encoders import jsonable_encoder
 
-from    models              import foobarModel
-from    controllers         import foobarController
+from pfdcm.models import foobarModel
+from pfdcm.controllers import foobarController
 
-router      = APIRouter()
+router = APIRouter()
 router.tags = ['foobar']
+
 
 @router.post(
     "/items/name/",
-    summary         = "POST an update to a name field"
+    summary="POST an update to a name field"
 )
 def itemName_update(name: foobarModel.nameInObject):
     """
@@ -33,10 +34,11 @@ def itemName_update(name: foobarModel.nameInObject):
     foobarModel.d_items[d_update['obj']]['name'] = d_update['name']
     return name
 
+
 @router.get(
     "/items_foobar/{item_id}",
-    response_model  = foobarModel.Item,
-    summary         = "GET an item_id"
+    response_model=foobarModel.Item,
+    summary="GET an item_id"
 )
 async def item_get(item_id: str):
     """
@@ -48,10 +50,11 @@ async def item_get(item_id: str):
     """
     return foobarModel.d_items[item_id]
 
+
 @router.put("/items_foobar/{item_id}",
-    response_model  = foobarModel.Item,
-    summary         = "PUT an item_id"
-)
+            response_model=foobarModel.Item,
+            summary="PUT an item_id"
+            )
 async def item_put(item_id: str, item: foobarModel.Item):
     """
     PUT an item_id. Fields that are omitted will use base model values:
@@ -59,12 +62,12 @@ async def item_put(item_id: str, item: foobarModel.Item):
     - **bar** : the second object
     - **baz** : a fun object
     """
-    update_item_encoded             = jsonable_encoder(item)
+    update_item_encoded = jsonable_encoder(item)
 
     # Change state here!
-    foobarModel.d_items[item_id]    = update_item_encoded
+    foobarModel.d_items[item_id] = update_item_encoded
 
     # Call a method in the controller module
-    d_ret                           = foobarController.noop()
+    d_ret = foobarController.noop()
 
     return update_item_encoded
