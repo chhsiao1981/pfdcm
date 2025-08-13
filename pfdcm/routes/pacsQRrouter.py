@@ -21,8 +21,20 @@ from pfdcm.controllers import pacsQRcontroller
 from datetime import datetime, timezone
 import pudb
 
+from pfdcm.http_handlers.pacs_qr.get_studies_handler import get_studies_handler
+from pfdcm.http_handlers.pacs_qr.get_series_handler import get_series_handler
+
 router = APIRouter()
 router.tags = ['PACS QR services']
+
+
+async def get_studies(service: str, mrn: str = '', accession_number: str = ''):
+    ret = get_studies_handler(service, mrn, accession_number)
+    return ret
+
+
+async def get_series():
+    pass
 
 
 @router.post(

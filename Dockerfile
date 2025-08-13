@@ -22,25 +22,19 @@
 #
 #   docker run -ti -e HOST_IP=$(ip route | grep -v docker | awk '{if(NF==11) print $9}') --entrypoint /bin/bash local/pfdcm
 #
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8-slim
+FROM python:3.13.6-bookworm
 
 LABEL DEVELOPMENT="                                                        \
     docker run --rm -it                                                    \
     -p 4005:4005 -p 10402:10402 -p 5555:5555 -p 10502:10502 -p 11113:11113 \
-    -v $PWD/pfdcm:/app:ro  local/pfdcm /start-reload.sh                    \
+    -v $PWD:/srv/pfdcm:ro local/pfdcm /start-reload.sh                    \
 "
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install --upgrade pip
-RUN pip install -r /tmp/requirements.txt && rm -v /tmp/requirements.txt
-RUN pip install https://github.com/msbrogli/rpudb/archive/master.zip
-RUN pip install tzlocal
-RUN pip install ipython
-RUN pip install pydantic
-COPY ./pfdcm /app
+COPY . /srv/pfdcm
+WORKDIR /srv/pfdcm
+RUN pip install .
 
 RUN apt update                              && \
     apt-get install -y apt-transport-https  && \
@@ -65,3 +59,5 @@ RUN echo '%localuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 ENV PORT=4005
 EXPOSE ${PORT} 10402 10502 5555 11113
+
+CMD ["python3", "-m", "uvicorn", "--host", "0.0.0.0", "--port", ${PORT}, "pfdcm.main:app"]

@@ -18,6 +18,7 @@ dependencies = [
     'pynetdicom==3.0.3',
     'pypx==3.11.22',
     'pfurl==2.3.0.1',
+    'uvicorn[standard]==0.35.0',
 ]
 
 authors = [
